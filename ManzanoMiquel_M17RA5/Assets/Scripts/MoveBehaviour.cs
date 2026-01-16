@@ -19,7 +19,8 @@ public class MoveBehaviour : MonoBehaviour
     public void MoveCharacter(Vector3 direction)
     {
         //Debug.Log("Moving character in direction: " + direction);
-        _rb.linearVelocity = new Vector3(direction.normalized.x * speed, direction.normalized.y * speed, direction.normalized.z * speed);
+        _rb.AddForce(direction.normalized * speed, ForceMode.VelocityChange);
+        //_rb.linearVelocity = new Vector3(direction.normalized.x * speed, direction.normalized.y * speed, direction.normalized.z * speed);
     }
 
     public void JumpCharacter()
