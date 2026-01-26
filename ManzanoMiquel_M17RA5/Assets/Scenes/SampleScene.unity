@@ -166,7 +166,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoveBehaviour
   animator: {fileID: 0}
-  velocity: 0
+  horizontalVelocity: 0
+  verticalVelocity: 0
+  groundCheckDistance: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
   jumpForce: 4
   rotSpeed: 10
 --- !u!54 &34433831
@@ -600,7 +605,7 @@ GameObject:
   - component: {fileID: 575319577}
   - component: {fileID: 575319576}
   - component: {fileID: 575319575}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -977,7 +982,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoveBehaviour
   animator: {fileID: 2147053359}
-  velocity: 0
+  horizontalVelocity: 0
+  verticalVelocity: 0
+  groundCheckDistance: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
   jumpForce: 5
   rotSpeed: 10
 --- !u!4 &2147053358 stripped

@@ -7,8 +7,16 @@ public class MoveBehaviour : MonoBehaviour
     private Rigidbody _rb;
     public Animator animator;
 
-    public float velocity;
-    //public float speed;
+    // Player velocity info
+    public float horizontalVelocity;
+    public float verticalVelocity;
+
+    // Ground check info
+    private bool isGrounded;
+    public float groundCheckDistance = 0.2f;
+    public LayerMask groundLayer;
+
+    
     public float jumpForce;
     public float rotSpeed = 10f;
 
@@ -19,11 +27,21 @@ public class MoveBehaviour : MonoBehaviour
         //animator = GetComponent<Animator>();
     }
 
+    public void Update()
+    {
+        isGrounded = CheckGround();
+        Debug.DrawRay(transform.position, Vector3.down * groundCheckDistance, Color.red);
+
+        animator.SetBool("isGrounded", isGrounded);
+        animator.SetFloat("verticalVelocity", _rb.linearVelocity.y);
+        animator.SetFloat("horizontalVelocity", horizontalVelocity);
+        Debug.Log("IsGrounded: " + isGrounded);
+    }
+
     public void FixedUpdate()
     {
         //Debug.Log("Current Velocity: " + _rb.velocity);
-        velocity = new Vector3(_rb.linearVelocity.x, 0, _rb.linearVelocity.z).magnitude;
-        animator.SetFloat("velocity", velocity);
+        horizontalVelocity = new Vector3(_rb.linearVelocity.x, 0, _rb.linearVelocity.z).magnitude;
     }
 
     public void MoveCharacter(Vector3 direction)
@@ -48,7 +66,24 @@ public class MoveBehaviour : MonoBehaviour
 
     public void JumpCharacter()
     {
-        _rb.linearVelocity = new Vector3(0f, 0f, 0f);
-        _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);     
+        if (!isGrounded) return;
+
+        _rb.linearVelocity = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
+        _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+        isGrounded = false;
     }
+
+    private bool CheckGround()
+    {
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+
+        return Physics.Raycast(
+            origin,
+            Vector3.down,
+            groundCheckDistance,
+            groundLayer
+        );
+    }
+
 }
