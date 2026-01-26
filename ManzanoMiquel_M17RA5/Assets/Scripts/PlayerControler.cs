@@ -1,25 +1,34 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static UnityEngine.Rendering.DebugUI;
 
 [RequireComponent(typeof(MoveBehaviour))]
+[RequireComponent(typeof(CameraSwitcher))]
 
 public class PlayerControler : MonoBehaviour, InputSystem_Actions.IPlayerActions
 {
     private InputSystem_Actions inputActions;
+    [SerializeField] private Transform cameraTransform;
     private MoveBehaviour _mb;
+    private CameraSwitcher _cs;
 
-    private Vector3 vectorInput;
+    private Vector3 moveInput;
 
     public void Awake()
     {
         inputActions = new InputSystem_Actions();
         inputActions.Player.SetCallbacks(this);
         _mb = GetComponent<MoveBehaviour>();
+        _cs = GetComponent<CameraSwitcher>();
     }
 
     public void OnAttack(InputAction.CallbackContext context)
     {
-        Debug.Log("Attack action triggered");
+        Debug.Log("Change camera action triggered");
+        if (context.performed)
+        {
+            _cs.ToggleCamera();
+        }
     }
 
     public void OnCrouch(InputAction.CallbackContext context)
@@ -48,9 +57,7 @@ public class PlayerControler : MonoBehaviour, InputSystem_Actions.IPlayerActions
 
     public void OnMove(InputAction.CallbackContext context)
     {
-        Vector2 vector2Input = context.ReadValue<Vector2>();
-
-        vectorInput = new Vector3(vector2Input.x, vectorInput.y, vector2Input.y);
+        moveInput = context.ReadValue<Vector2>();
     }
 
     public void OnNext(InputAction.CallbackContext context)
@@ -81,6 +88,17 @@ public class PlayerControler : MonoBehaviour, InputSystem_Actions.IPlayerActions
 
     void FixedUpdate()
     {
-        _mb.MoveCharacter(vectorInput);
+        Vector3 camForward = cameraTransform.transform.forward;
+        Vector3 camRight = cameraTransform.transform.right;
+
+        camForward.y = 0f;
+        camRight.y = 0f;
+
+        camForward.Normalize();
+        camRight.Normalize();
+
+        Vector3 moveDir = camForward * moveInput.y + camRight * moveInput.x;
+
+        _mb.MoveCharacter(moveDir);
     }
 }
