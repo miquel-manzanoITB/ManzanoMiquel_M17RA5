@@ -24,6 +24,8 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     // ── Interacció ────────────────────────────────────────────────────────────
     public event UnityAction OnInteractEvent = delegate { };
 
+    public event UnityAction OnSkipVideoEvent = delegate { };
+
     // ── Global (static perquè UIManager no necessita referència) ─────────────
     public static event UnityAction OnPauseGameEvent;
 
@@ -71,11 +73,17 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
 
     public void OnInteract(InputAction.CallbackContext context)
     {
+        Debug.Log($"Interact input");
         if (context.performed) OnInteractEvent.Invoke();
     }
 
     public void OnPauseGame(InputAction.CallbackContext context)
     {
         if (context.performed) OnPauseGameEvent?.Invoke();
+    }
+
+    public void OnSkipVideo(InputAction.CallbackContext context)
+    {
+        if (context.performed) OnSkipVideoEvent.Invoke();
     }
 }
