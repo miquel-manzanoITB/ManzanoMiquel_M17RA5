@@ -1,40 +1,61 @@
-using System;
 using UnityEngine;
 
 /// <summary>
-/// Proporciona la propietat IsGrounded mitjançant un SphereCast cap avall.
-/// Component independent perquè qualsevol Behaviour el pugui llegir sense acoblament.
+/// Detecta si el jugador és a terra amb SphereCast.
+/// Inclou un petit "coyote buffer" per evitar flickering de l'animació de caure
+/// quan el personatge toca terra de nou.
 /// </summary>
 public class PlayerGroundChecker : MonoBehaviour
 {
     [Header("Ground Check")]
     [SerializeField] private float checkDistance = 0.15f;
     [SerializeField] private LayerMask groundMask = ~0;
-    [SerializeField] private Transform checkOrigin;   // Transform als peus del capsule
+    [SerializeField] private Transform checkOrigin;
     [SerializeField] private float sphereRadius = 0.25f;
 
+    [Header("Anti-flicker")]
+    [Tooltip("Frames que ha de ser fals IsGrounded abans de considerar-se a l'aire.")]
+    [SerializeField] private int ungroundedFrames = 3;
+
     public bool IsGrounded { get; private set; }
+
+    // Necessari per a PlayerMovementBehaviour: bloquejar moviment contra parets
+    public Vector3 GroundNormal { get; private set; } = Vector3.up;
+
+    private int _ungroundedCounter;
 
     private void FixedUpdate()
     {
         Vector3 origin = checkOrigin != null ? checkOrigin.position : transform.position;
-        IsGrounded = Physics.SphereCast(origin, sphereRadius, Vector3.down, out _, checkDistance, groundMask);
+
+        bool hit = Physics.SphereCast(
+            origin, sphereRadius, Vector3.down,
+            out RaycastHit hitInfo, checkDistance, groundMask,
+            QueryTriggerInteraction.Ignore);
+
+        if (hit)
+        {
+            _ungroundedCounter = 0;
+            IsGrounded = true;
+            GroundNormal = hitInfo.normal;
+        }
+        else
+        {
+            _ungroundedCounter++;
+            // Només canviem a false després de N frames consecutius sense terra
+            if (_ungroundedCounter >= ungroundedFrames)
+                IsGrounded = false;
+
+            GroundNormal = Vector3.up;
+        }
     }
 
     private void OnDrawGizmos()
     {
         Vector3 origin = checkOrigin != null ? checkOrigin.position : transform.position;
-
-        // Verd = a terra, vermell = a l'aire
         Gizmos.color = IsGrounded ? Color.green : Color.red;
-
-        // Esfera inicial (on comença el cast)
         Gizmos.DrawWireSphere(origin, sphereRadius);
-
-        // Esfera final (fins on arriba el cast)
         Gizmos.DrawWireSphere(origin + Vector3.down * checkDistance, sphereRadius);
-
-        // Línia que connecta les dues esferes
         Gizmos.DrawLine(origin, origin + Vector3.down * checkDistance);
     }
 }

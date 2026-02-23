@@ -51,8 +51,11 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        Debug.Log($"Jump input");
-        if (context.performed) OnJumpEvent.Invoke();
+        if (context.performed)
+        {
+            Debug.Log($"Jump input");
+            OnJumpEvent.Invoke();
+        }
     }
 
     public void OnAttack(InputAction.CallbackContext context)
@@ -73,8 +76,7 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
 
     public void OnInteract(InputAction.CallbackContext context)
     {
-        Debug.Log($"Interact input");
-        if (context.performed) OnInteractEvent.Invoke();
+        if (context.started) OnInteractEvent.Invoke();
     }
 
     public void OnPauseGame(InputAction.CallbackContext context)

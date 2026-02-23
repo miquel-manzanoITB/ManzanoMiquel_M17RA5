@@ -63,6 +63,8 @@ public class VideoDoor : MonoBehaviour, IInteractable
         }
 
         _videoPlaying = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         // Pausa el joc
         Time.timeScale = 0f;
