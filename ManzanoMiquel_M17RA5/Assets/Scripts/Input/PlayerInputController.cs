@@ -15,22 +15,23 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     public event UnityAction OnJumpEvent = delegate { };
 
     // ── Combat ────────────────────────────────────────────────────────────────
-    public event UnityAction OnAttackEvent = delegate { };  // Només animació
-    public event UnityAction<bool> OnAimEvent = delegate { };  // true=apuntar, false=deixar
+    public event UnityAction OnAttackEvent = delegate { };
+    public event UnityAction<bool> OnAimEvent = delegate { };
 
     // ── Ball ──────────────────────────────────────────────────────────────────
     public event UnityAction OnDanceEvent = delegate { };
 
     // ── Interacció ────────────────────────────────────────────────────────────
     public event UnityAction OnInteractEvent = delegate { };
-
     public event UnityAction OnSkipVideoEvent = delegate { };
 
-    // ── Global (static perquè UIManager no necessita referència) ─────────────
+    // ── Global ────────────────────────────────────────────────────────────────
     public static event UnityAction OnPauseGameEvent;
 
     // ─────────────────────────────────────────────────────────────────────────
     private InputSystem_Actions _inputActions;
+    private bool _actionsEnabled = true;
+    private bool _lookEnabled = true;
 
     private void Awake()
     {
@@ -41,42 +42,65 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     private void OnEnable() => _inputActions.Enable();
     private void OnDisable() => _inputActions.Disable();
 
+    /// <summary>
+    /// Bloqueja o desbloqueja les accions del jugador.
+    /// blockLook = true també bloqueja la càmera (útil per al ball).
+    /// blockLook = false deixa la càmera lliure (útil per a l'atac).
+    /// </summary>
+    public void SetInputEnabled(bool enabled, bool blockLook = false)
+    {
+        _actionsEnabled = enabled;
+        _lookEnabled = enabled || !blockLook;
+
+        // Si estem bloquejant, forcem un event de moviment a zero perquè
+        // el personatge s'aturi immediatament encara que mantingui la tecla.
+        if (!enabled)
+            OnMoveEvent.Invoke(Vector2.zero);
+    }
+
     // ── Callbacks de IPlayerActions ───────────────────────────────────────────
 
     public void OnMove(InputAction.CallbackContext context)
-        => OnMoveEvent.Invoke(context.ReadValue<Vector2>());
+    {
+        if (_actionsEnabled)
+            OnMoveEvent.Invoke(context.ReadValue<Vector2>());
+    }
 
     public void OnLook(InputAction.CallbackContext context)
-        => OnLookEvent.Invoke(context.ReadValue<Vector2>());
+    {
+        if (_lookEnabled)
+            OnLookEvent.Invoke(context.ReadValue<Vector2>());
+    }
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (_actionsEnabled && context.performed)
         {
-            Debug.Log($"Jump input");
+            Debug.Log("Jump input");
             OnJumpEvent.Invoke();
         }
     }
 
     public void OnAttack(InputAction.CallbackContext context)
     {
-        if (context.performed) OnAttackEvent.Invoke();
+        if (_actionsEnabled && context.performed) OnAttackEvent.Invoke();
     }
 
     public void OnAim(InputAction.CallbackContext context)
     {
+        if (!_actionsEnabled) return;
         if (context.performed) OnAimEvent.Invoke(true);
         if (context.canceled) OnAimEvent.Invoke(false);
     }
 
     public void OnDance(InputAction.CallbackContext context)
     {
-        if (context.performed) OnDanceEvent.Invoke();
+        if (_actionsEnabled && context.performed) OnDanceEvent.Invoke();
     }
 
     public void OnInteract(InputAction.CallbackContext context)
     {
-        if (context.started) OnInteractEvent.Invoke();
+        if (_actionsEnabled && context.started) OnInteractEvent.Invoke();
     }
 
     public void OnPauseGame(InputAction.CallbackContext context)
@@ -86,6 +110,6 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
 
     public void OnSkipVideo(InputAction.CallbackContext context)
     {
-        if (context.performed) OnSkipVideoEvent.Invoke();
+        if (_actionsEnabled && context.performed) OnSkipVideoEvent.Invoke();
     }
 }

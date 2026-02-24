@@ -461,7 +461,6 @@ GameObject:
   - component: {fileID: 490010842}
   - component: {fileID: 490010841}
   - component: {fileID: 490010839}
-  - component: {fileID: 490010838}
   - component: {fileID: 490010837}
   - component: {fileID: 490010836}
   - component: {fileID: 490010835}
@@ -559,19 +558,6 @@ MonoBehaviour:
   checkOrigin: {fileID: 2056625292}
   sphereRadius: 0.25
   ungroundedFrames: 3
---- !u!114 &490010838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 490010833}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4aa429949517d1f42b68df4453329334, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerDanceBehaviour
-  animationDuration: 5
 --- !u!114 &490010839
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -585,8 +571,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimationBehaviour
   animator: {fileID: 1880300438}
-  attackStateName: Attack
-  fallbackAttackDuration: 0.5
+  attackDuration: 2
+  danceDuration: 5
 --- !u!114 &490010841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -625,7 +611,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 80
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!136 &490010843
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -645,10 +631,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.092874885
+  m_Radius: 0.13650894
   m_Height: 1.0972013
   m_Direction: 1
-  m_Center: {x: 0, y: 0.5783975, z: -0.03177488}
+  m_Center: {x: 0.0031433105, y: 0.5783975, z: -0.03177488}
 --- !u!4 &490010844
 Transform:
   m_ObjectHideFlags: 0
@@ -662,6 +648,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 767374985}
   - {fileID: 1196403492}
   - {fileID: 1001997164}
   - {fileID: 1214269566}
@@ -1076,7 +1063,7 @@ RectTransform:
   - {fileID: 1272459725}
   - {fileID: 1325108341}
   - {fileID: 1247737801}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 490010844}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -3643,7 +3630,6 @@ SceneRoots:
   - {fileID: 1445753095}
   - {fileID: 490010844}
   - {fileID: 1934933786}
-  - {fileID: 767374985}
   - {fileID: 1330758990}
   - {fileID: 856100557}
   - {fileID: 1316424370}
