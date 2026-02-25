@@ -34,10 +34,10 @@ public class PlayerMovementBehaviour : MonoBehaviour
 
     [Header("Control aéreo")]
     [Tooltip("0 = sin control en el aire. 1 = igual que en suelo.\nHL2≈0.15 | Mirror's Edge≈0.5")]
-    [SerializeField] [Range(0f, 1f)] private float airControl = 0.35f;
+    [SerializeField][Range(0f, 1f)] private float airControl = 0.35f;
 
     [Header("Gravedad extra")]
-    [SerializeField] private float fallMultiplier    = 2.5f;
+    [SerializeField] private float fallMultiplier = 2.5f;
     [SerializeField] private float lowJumpMultiplier = 2.0f;
 
     [Header("Step offset (subir escalones/baches)")]
@@ -55,14 +55,15 @@ public class PlayerMovementBehaviour : MonoBehaviour
     public float MaxSpeed => runSpeed;
 
     // Referencias
-    private Rigidbody             _rb;
+    private Rigidbody _rb;
     private PlayerInputController _input;
-    private PlayerGroundChecker   _ground;
-    private PlayerDanceBehaviour  _dance;
-    private PlayerJumpBehaviour   _jump;
-    private Camera                _camera;
-    private Collider              _collider;
-    private CapsuleCollider       _capsule;
+    private PlayerGroundChecker _ground;
+    private PlayerDanceBehaviour _dance;
+    private PlayerJumpBehaviour _jump;
+    private Camera _camera;
+    private Collider _collider;
+    private CapsuleCollider _capsule;
+    private PlayerLookBehaviour _look;
 
     // Estado
     private Vector2 _moveInput;
@@ -70,16 +71,17 @@ public class PlayerMovementBehaviour : MonoBehaviour
 
     private void Awake()
     {
-        _rb       = GetComponent<Rigidbody>();
+        _rb = GetComponent<Rigidbody>();
         _rb.freezeRotation = true;
 
         _collider = GetComponent<Collider>();
-        _capsule  = GetComponent<CapsuleCollider>();
-        _input    = GetComponent<PlayerInputController>();
-        _ground   = GetComponent<PlayerGroundChecker>();
-        _dance    = GetComponent<PlayerDanceBehaviour>();
-        _jump     = GetComponent<PlayerJumpBehaviour>();
-        _camera   = Camera.main;
+        _capsule = GetComponent<CapsuleCollider>();
+        _input = GetComponent<PlayerInputController>();
+        _ground = GetComponent<PlayerGroundChecker>();
+        _dance = GetComponent<PlayerDanceBehaviour>();
+        _jump = GetComponent<PlayerJumpBehaviour>();
+        _camera = Camera.main;
+        _look = GetComponent<PlayerLookBehaviour>();
 
         _input.OnMoveEvent += v => _moveInput = v;
 
@@ -105,10 +107,10 @@ public class PlayerMovementBehaviour : MonoBehaviour
             var mat = new PhysicsMaterial("PlayerNoFriction")
             {
                 dynamicFriction = 0f,
-                staticFriction  = 0f,
+                staticFriction = 0f,
                 frictionCombine = PhysicsMaterialCombine.Minimum,
-                bounciness      = 0f,
-                bounceCombine   = PhysicsMaterialCombine.Minimum,
+                bounciness = 0f,
+                bounceCombine = PhysicsMaterialCombine.Minimum,
             };
             _collider.material = mat;
         }
@@ -182,11 +184,16 @@ public class PlayerMovementBehaviour : MonoBehaviour
             Vector3 force = Vector3.ClampMagnitude(wishDir * runSpeed - hVel, accelDt);
             _rb.AddForce(force, ForceMode.VelocityChange);
 
-            float rotSpeed = grounded ? 14f : 5f;
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                Quaternion.LookRotation(wishDir),
-                rotSpeed * Time.fixedDeltaTime);
+            // En primera persona el cos el gira PlayerLookBehaviour (segueix el yaw
+            // de la càmera). Si ho fem aquí també, lluiten entre ells i fan glitch.
+            if (_look == null || !_look.IsFirstPerson)
+            {
+                float rotSpeed = grounded ? 14f : 5f;
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    Quaternion.LookRotation(wishDir),
+                    rotSpeed * Time.fixedDeltaTime);
+            }
         }
         else
         {

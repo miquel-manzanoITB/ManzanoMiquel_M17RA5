@@ -15,6 +15,8 @@ public class GameManager : MonoBehaviour
     [Header("Música")]
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioClip mainTheme;
+    [Range(0f, 1f)]
+    [SerializeField] private float musicVolume = 1f;
 
     [Header("Sons d'escena")]
     [SerializeField] private AudioClip sceneChangeClip;   // So en canviar d'escena
@@ -26,7 +28,12 @@ public class GameManager : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        if (musicSource == null)
+            musicSource = GetComponent<AudioSource>();
+
         PlayMusic(mainTheme);
+        SetMusicVolume(musicVolume);
     }
 
     // ── Col·leccionable ───────────────────────────────────────────────────────
@@ -58,6 +65,16 @@ public class GameManager : MonoBehaviour
         musicSource.loop = true;
         musicSource.Play();
     }
+
+    /// <summary>Ajusta el volum de la música (0-1). Assignable des de la UI o l'Inspector.</summary>
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = Mathf.Clamp01(volume);
+        if (musicSource != null)
+            musicSource.volume = musicVolume;
+    }
+
+    public float MusicVolume => musicVolume;
 
     public void PlaySFX(AudioClip clip)
     {
