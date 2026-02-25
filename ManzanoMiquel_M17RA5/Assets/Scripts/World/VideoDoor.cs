@@ -1,4 +1,3 @@
-
 // ════════════════════════════════════════════════════════════════════════════
 // VideoDoor
 // Porta que reprodueix un vídeo quan s'interactua amb ella.

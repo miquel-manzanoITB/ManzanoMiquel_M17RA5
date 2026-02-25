@@ -1,5 +1,3 @@
-
-
 // ════════════════════════════════════════════════════════════════════════════
 // CollectibleBehaviour
 // Efecte float + rotació per destacar a l'entorn (requerit per l'enunciat).

@@ -1,23 +1,20 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Condueix l'Animator a partir de l'estat del Rigidbody i els events d'input.
-/// També gestiona el ball de victòria (abans a PlayerDanceBehaviour).
-///
-/// Durant l'ATAC:  bloqueja accions però permet moure la càmera.
-/// Durant el BALL: bloqueja accions i càmera.
-///
-/// Paràmetres requerits a l'Animator:
-///   Float   – Speed
-///   Float   – VelocityY
-///   Bool    – IsGrounded
-///   Bool    – Aiming
-///   Bool    – Dancing
-///   Bool    – IsAttacking
-///   Trigger – Jump
-///   Trigger – Fire
-/// </summary>
+// ════════════════════════════════════════════════════════════════════════════
+// PlayerAnimationBehaviour
+// Condueix l'Animator i gestiona les seqüències d'atac i ball.
+//
+// REFACTOR: S'ha eliminat PlayerDanceBehaviour (estava duplicat aquí).
+//           Tota la lògica del ball viu en aquest script.
+//           PlayerJumpBehaviour ara consulta IsDancing directament aquí.
+//
+// Paràmetres requerits a l'Animator:
+//   Float   – Speed, VelocityY
+//   Bool    – IsGrounded, Aiming, Dancing, IsAttacking
+//   Trigger – Jump, Fire
+// ════════════════════════════════════════════════════════════════════════════
+
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(PlayerInputController))]
 [RequireComponent(typeof(PlayerGroundChecker))]
@@ -30,10 +27,10 @@ public class PlayerAnimationBehaviour : MonoBehaviour
     [SerializeField] private float attackDuration = 0.5f;
 
     [Header("Ball")]
-    [Tooltip("Durada de l'animació de ball (s). Ha de coincidir amb el clip de Mixamo.")]
+    [Tooltip("Durada de l'animació de ball (s). Ha de coincidir amb el clip.")]
     [SerializeField] private float danceDuration = 5f;
 
-    // Hashes en caché
+    // Hashes en caché — evita cerques de string cada frame
     private static readonly int H_Speed = Animator.StringToHash("Speed");
     private static readonly int H_VelocityY = Animator.StringToHash("VelocityY");
     private static readonly int H_IsGrounded = Animator.StringToHash("IsGrounded");
@@ -45,7 +42,7 @@ public class PlayerAnimationBehaviour : MonoBehaviour
 
     private Rigidbody _rb;
     private PlayerInputController _input;
-    private PlayerGroundChecker _groundChecker;
+    private PlayerGroundChecker _ground;
     private PlayerLookBehaviour _look;
 
     private bool _isAiming;
@@ -59,34 +56,32 @@ public class PlayerAnimationBehaviour : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody>();
         _input = GetComponent<PlayerInputController>();
-        _groundChecker = GetComponent<PlayerGroundChecker>();
+        _ground = GetComponent<PlayerGroundChecker>();
         _look = GetComponent<PlayerLookBehaviour>();
 
-        _input.OnJumpEvent += HandleJumpAnimation;
-        _input.OnAttackEvent += HandleAttackAnimation;
+        _input.OnJumpEvent += () => animator.SetTrigger(H_Jump);
+        _input.OnAttackEvent += HandleAttack;
         _input.OnAimEvent += HandleAim;
         _input.OnDanceEvent += HandleDance;
     }
 
     private void OnDestroy()
     {
-        _input.OnJumpEvent -= HandleJumpAnimation;
-        _input.OnAttackEvent -= HandleAttackAnimation;
+        _input.OnJumpEvent -= () => animator.SetTrigger(H_Jump);
+        _input.OnAttackEvent -= HandleAttack;
         _input.OnAimEvent -= HandleAim;
         _input.OnDanceEvent -= HandleDance;
     }
 
     private void Update()
     {
-        Vector3 horizontalVel = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
-        animator.SetFloat(H_Speed, horizontalVel.magnitude);
+        Vector3 hVel = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
+        animator.SetFloat(H_Speed, hVel.magnitude);
         animator.SetFloat(H_VelocityY, _rb.linearVelocity.y);
-        animator.SetBool(H_IsGrounded, _groundChecker.IsGrounded);
+        animator.SetBool(H_IsGrounded, _ground.IsGrounded);
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────────
-
-    private void HandleJumpAnimation() => animator.SetTrigger(H_Jump);
 
     private void HandleAim(bool aiming)
     {
@@ -94,14 +89,13 @@ public class PlayerAnimationBehaviour : MonoBehaviour
         animator.SetBool(H_Aiming, aiming);
     }
 
-    private void HandleAttackAnimation()
+    private void HandleAttack()
     {
         if (_isAiming)
         {
             animator.SetTrigger(H_Fire);
             return;
         }
-
         if (_isAttacking) return;
 
         if (_attackCoroutine != null) StopCoroutine(_attackCoroutine);
@@ -119,8 +113,7 @@ public class PlayerAnimationBehaviour : MonoBehaviour
     private IEnumerator AttackRoutine()
     {
         _isAttacking = true;
-        // blockLook: false → la càmera segueix funcionant durant l'atac
-        _input.SetInputEnabled(false, blockLook: false);
+        _input.SetInputEnabled(false, blockLook: false); // càmera lliure durant atac
         animator.SetBool(H_IsAttacking, true);
 
         yield return new WaitForSeconds(attackDuration);
@@ -133,8 +126,7 @@ public class PlayerAnimationBehaviour : MonoBehaviour
     private IEnumerator DanceRoutine()
     {
         IsDancing = true;
-        // blockLook: true → càmera i accions bloquejades durant el ball
-        _input.SetInputEnabled(false, blockLook: true);
+        _input.SetInputEnabled(false, blockLook: true); // càmera i accions bloquejades
 
         _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
         animator.SetBool(H_Dancing, true);

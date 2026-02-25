@@ -1,17 +1,11 @@
-// ════════════════════════════════════════════════════════════════════════════
-// InteractionDetector
-// Adjunta'l al Player. Fa Raycast des de la CÀMERA (no des del Player) per
-// detectar objectes interactuables. Mostra el prompt a la UI i crida
-// OnInteract() quan es prem E.
-//
-// FIX: El raig ara surt des de la càmera cap endavant, com fan tots els jocs
-// en primera/tercera persona. Abans sortia des del transform del player i
-// apuntava a transform.forward, que causava que el raig mai coincidís amb el
-// centre de la pantalla quan la càmera estava en angle.
-// ════════════════════════════════════════════════════════════════════════════
-
 using TMPro;
 using UnityEngine;
+
+// ════════════════════════════════════════════════════════════════════════════
+// InteractionDetector
+// Adjunta'l al Player. Fa Raycast des de rayOrigin (apunta la càmera) per
+// detectar IInteractable. Mostra el prompt i crida OnInteract() en prémer E.
+// ════════════════════════════════════════════════════════════════════════════
 
 [RequireComponent(typeof(PlayerInputController))]
 public class InteractionDetector : MonoBehaviour
@@ -29,43 +23,32 @@ public class InteractionDetector : MonoBehaviour
     [SerializeField] private bool showDebugRay = true;
 
     private PlayerInputController _input;
-    private Camera _camera;
     private IInteractable _currentInteractable;
 
     private void Awake()
     {
         _input = GetComponent<PlayerInputController>();
-        _camera = Camera.main;
-
         _input.OnInteractEvent += TryInteract;
-
         HidePrompt();
     }
 
-    private void OnDestroy()
-    {
-        _input.OnInteractEvent -= TryInteract;
-    }
+    private void OnDestroy() => _input.OnInteractEvent -= TryInteract;
 
-    private void Update()
-    {
-        DetectInteractable();
-    }
+    private void Update() => DetectInteractable();
 
-    // ── Detecció ─────────────────────────────────────────────────────────────
+    // ── Detecció ──────────────────────────────────────────────────────────────
+
     private void DetectInteractable()
     {
         if (rayOrigin == null) return;
 
-        Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
-
         bool found = false;
 
-        if (Physics.Raycast(ray, out RaycastHit hit, interactionRange, interactableLayers, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(rayOrigin.position, rayOrigin.forward,
+            out RaycastHit hit, interactionRange, interactableLayers, QueryTriggerInteraction.Ignore))
         {
             IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>()
                                       ?? hit.collider.GetComponent<IInteractable>();
-
             if (interactable != null)
             {
                 _currentInteractable = interactable;
@@ -86,15 +69,12 @@ public class InteractionDetector : MonoBehaviour
     private void TryInteract()
     {
         if (_currentInteractable == null) return;
-
         _currentInteractable.OnInteract(gameObject);
-
-        // Refresquem la detecció immediatament per si l'objecte ha canviat d'estat
         HidePrompt();
         _currentInteractable = null;
     }
 
-    // ── UI ───────────────────────────────────────────────────────────────────
+    // ── UI ────────────────────────────────────────────────────────────────────
 
     private void ShowPrompt(string message)
     {
@@ -105,17 +85,15 @@ public class InteractionDetector : MonoBehaviour
 
     private void HidePrompt()
     {
-        if (interactionPromptUI != null)
-            interactionPromptUI.SetActive(false);
+        interactionPromptUI?.SetActive(false);
     }
 
-    // ── Gizmos ───────────────────────────────────────────────────────────────
+    // ── Gizmos ────────────────────────────────────────────────────────────────
+
     private void OnDrawGizmos()
     {
         if (!showDebugRay || rayOrigin == null) return;
-
-        Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
         Gizmos.color = _currentInteractable != null ? Color.green : Color.yellow;
-        Gizmos.DrawRay(ray.origin, ray.direction * interactionRange);
+        Gizmos.DrawRay(rayOrigin.position, rayOrigin.forward * interactionRange);
     }
 }

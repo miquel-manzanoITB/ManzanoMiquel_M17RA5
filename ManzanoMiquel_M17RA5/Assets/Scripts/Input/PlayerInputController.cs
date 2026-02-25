@@ -3,10 +3,12 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine;
 
-/// <summary>
-/// Llegeix tots els inputs via el New Input System i els exposa com a events.
-/// Cap altre Behaviour llegeix input directament — tot passa per aquí.
-/// </summary>
+// ════════════════════════════════════════════════════════════════════════════
+// PlayerInputController
+// Llegeix tots els inputs via el New Input System i els exposa com a events.
+// Cap altre Behaviour llegeix input directament — tot passa per aquí.
+// ════════════════════════════════════════════════════════════════════════════
+
 public class PlayerInputController : MonoBehaviour, IPlayerActions
 {
     // ── Moviment ──────────────────────────────────────────────────────────────
@@ -25,10 +27,12 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     public event UnityAction OnInteractEvent = delegate { };
     public event UnityAction OnSkipVideoEvent = delegate { };
 
-    // ── Global ────────────────────────────────────────────────────────────────
+    // ── Global (estàtic per a UIManager) ─────────────────────────────────────
     public static event UnityAction OnPauseGameEvent;
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Estat del salt (llegit per PlayerJumpBehaviour) ───────────────────────
+    public bool IsJumpHeld { get; private set; }
+
     private InputSystem_Actions _inputActions;
     private bool _actionsEnabled = true;
     private bool _lookEnabled = true;
@@ -43,73 +47,69 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     private void OnDisable() => _inputActions.Disable();
 
     /// <summary>
-    /// Bloqueja o desbloqueja les accions del jugador.
-    /// blockLook = true també bloqueja la càmera (útil per al ball).
-    /// blockLook = false deixa la càmera lliure (útil per a l'atac).
+    /// Bloqueja/desbloqueja les accions.
+    /// blockLook=true també bloqueja la càmera (ball).
+    /// blockLook=false deixa la càmera lliure (atac).
     /// </summary>
     public void SetInputEnabled(bool enabled, bool blockLook = false)
     {
         _actionsEnabled = enabled;
         _lookEnabled = enabled || !blockLook;
 
-        // Si estem bloquejant, forcem un event de moviment a zero perquè
-        // el personatge s'aturi immediatament encara que mantingui la tecla.
         if (!enabled)
             OnMoveEvent.Invoke(Vector2.zero);
     }
 
-    // ── Callbacks de IPlayerActions ───────────────────────────────────────────
+    // ── Callbacks IPlayerActions ──────────────────────────────────────────────
 
-    public void OnMove(InputAction.CallbackContext context)
+    public void OnMove(InputAction.CallbackContext ctx)
     {
-        if (_actionsEnabled)
-            OnMoveEvent.Invoke(context.ReadValue<Vector2>());
+        if (_actionsEnabled) OnMoveEvent.Invoke(ctx.ReadValue<Vector2>());
     }
 
-    public void OnLook(InputAction.CallbackContext context)
+    public void OnLook(InputAction.CallbackContext ctx)
     {
-        if (_lookEnabled)
-            OnLookEvent.Invoke(context.ReadValue<Vector2>());
+        if (_lookEnabled) OnLookEvent.Invoke(ctx.ReadValue<Vector2>());
     }
 
-    public void OnJump(InputAction.CallbackContext context)
-    {
-        if (_actionsEnabled && context.performed)
-        {
-            Debug.Log("Jump input");
-            OnJumpEvent.Invoke();
-        }
-    }
-
-    public void OnAttack(InputAction.CallbackContext context)
-    {
-        if (_actionsEnabled && context.performed) OnAttackEvent.Invoke();
-    }
-
-    public void OnAim(InputAction.CallbackContext context)
+    public void OnJump(InputAction.CallbackContext ctx)
     {
         if (!_actionsEnabled) return;
-        if (context.performed) OnAimEvent.Invoke(true);
-        if (context.canceled) OnAimEvent.Invoke(false);
+        if (ctx.performed) OnJumpEvent.Invoke();
+        // Exposem l'estat del botó per al salt variable (sense accedir al Input System des de fora)
+        IsJumpHeld = ctx.performed || ctx.started;
+        if (ctx.canceled) IsJumpHeld = false;
     }
 
-    public void OnDance(InputAction.CallbackContext context)
+    public void OnAttack(InputAction.CallbackContext ctx)
     {
-        if (_actionsEnabled && context.performed) OnDanceEvent.Invoke();
+        if (_actionsEnabled && ctx.performed) OnAttackEvent.Invoke();
     }
 
-    public void OnInteract(InputAction.CallbackContext context)
+    public void OnAim(InputAction.CallbackContext ctx)
     {
-        if (_actionsEnabled && context.started) OnInteractEvent.Invoke();
+        if (!_actionsEnabled) return;
+        if (ctx.performed) OnAimEvent.Invoke(true);
+        if (ctx.canceled) OnAimEvent.Invoke(false);
     }
 
-    public void OnPauseGame(InputAction.CallbackContext context)
+    public void OnDance(InputAction.CallbackContext ctx)
     {
-        if (context.performed) OnPauseGameEvent?.Invoke();
+        if (_actionsEnabled && ctx.performed) OnDanceEvent.Invoke();
     }
 
-    public void OnSkipVideo(InputAction.CallbackContext context)
+    public void OnInteract(InputAction.CallbackContext ctx)
     {
-        if (_actionsEnabled && context.performed) OnSkipVideoEvent.Invoke();
+        if (_actionsEnabled && ctx.started) OnInteractEvent.Invoke();
+    }
+
+    public void OnPauseGame(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed) OnPauseGameEvent?.Invoke();
+    }
+
+    public void OnSkipVideo(InputAction.CallbackContext ctx)
+    {
+        if (_actionsEnabled && ctx.performed) OnSkipVideoEvent.Invoke();
     }
 }

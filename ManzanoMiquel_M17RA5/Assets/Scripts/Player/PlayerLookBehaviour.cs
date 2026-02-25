@@ -1,5 +1,15 @@
 using UnityEngine;
 
+// ════════════════════════════════════════════════════════════════════════════
+// PlayerLookBehaviour
+// Gestiona la càmera en 3a i 1a persona amb transició suau entre modes.
+//
+// 3a persona — òrbita al voltant de thirdPersonPivot amb col·lisió.
+// 1a persona — posició a firstPersonPivot, el cos segueix el yaw.
+// Transició  — interpolació de posició/rotació via _transitionT (0→1).
+// Frontal    — vista fixa per al ball de victòria.
+// ════════════════════════════════════════════════════════════════════════════
+
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(PlayerInputController))]
 public class PlayerLookBehaviour : MonoBehaviour
@@ -9,18 +19,18 @@ public class PlayerLookBehaviour : MonoBehaviour
     [SerializeField] private float maxLookAngle = 80f;
     [SerializeField] private bool invertY = false;
 
-    [Header("Càmera – Tercera persona")]
+    [Header("Càmera")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private Transform thirdPersonPivot;
+    [SerializeField] private Transform firstPersonPivot;
+
+    [Header("3a persona")]
     [SerializeField] private float orbitDistance = 4f;
     [SerializeField] private float minOrbitDistance = 0.5f;
     [SerializeField] private LayerMask cameraCollisionMask;
 
-    [Header("Càmera – Primera persona")]
-    [SerializeField] private Transform firstPersonPivot;
-
-    [Header("Transició")]
-    [Tooltip("Velocitat de la transició entre 1a i 3a persona. Més alt = més ràpid.")]
+    [Header("Transició 1a ↔ 3a persona")]
+    [Tooltip("Velocitat de la transició. 6 = natural, 12 = ràpid.")]
     [SerializeField] private float transitionSpeed = 6f;
 
     [Header("FOV")]
@@ -35,13 +45,13 @@ public class PlayerLookBehaviour : MonoBehaviour
     private float _yaw;
     private float _pitch;
     private Vector2 _lookInput;
-    private bool _isFirstPerson;
-    private bool _isFrontCamera;
-    private bool _lockedFirstPerson;
 
-    // ── Transició ─────────────────────────────────────────────────────────────
-    // _transitionT va de 0 (3a persona) a 1 (1a persona) suaument
-    private float _transitionT = 0f;
+    private bool _isFirstPerson;
+    private bool _lockedFirstPerson;  // bloquejat per FirstPersonZone
+    private bool _isFrontCamera;
+
+    // 0 = 3a persona, 1 = 1a persona
+    private float _transitionT;
 
     private void Awake()
     {
@@ -71,7 +81,6 @@ public class PlayerLookBehaviour : MonoBehaviour
         _pitch += (invertY ? _lookInput.y : -_lookInput.y) * mouseSensitivity * Time.deltaTime;
         _pitch = Mathf.Clamp(_pitch, -maxLookAngle, maxLookAngle);
 
-        // Avança o retrocedeix el t de transició suaument
         float targetT = _isFirstPerson ? 1f : 0f;
         _transitionT = Mathf.MoveTowards(_transitionT, targetT, transitionSpeed * Time.deltaTime);
 
@@ -79,23 +88,22 @@ public class PlayerLookBehaviour : MonoBehaviour
         UpdateFov();
     }
 
-    // ── Càmera amb transició interpolada ──────────────────────────────────────
+    // ── Càmera ────────────────────────────────────────────────────────────────
 
     private void UpdateCamera()
     {
-        // Calculem les posicions i rotacions dels dos extrems
         (Vector3 thirdPos, Quaternion thirdRot) = GetThirdPersonPosRot();
         Vector3 firstPos = firstPersonPivot.position;
         Quaternion firstRot = Quaternion.Euler(_pitch, _yaw, 0f);
 
-        // Smooth step per una corba més natural (accelera i frena)
+        // SmoothStep per a una corba més natural (accelera i frena)
         float t = Mathf.SmoothStep(0f, 1f, _transitionT);
 
         playerCamera.transform.position = Vector3.Lerp(thirdPos, firstPos, t);
         playerCamera.transform.rotation = Quaternion.Slerp(thirdRot, firstRot, t);
 
-        // Gira el cos del personatge quan s'apropa a 1a persona
-        if (_transitionT > 0.1f)
+        // El cos segueix el yaw proporcionalment a quant estem en 1a persona
+        if (_transitionT > 0.05f)
         {
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
@@ -107,29 +115,22 @@ public class PlayerLookBehaviour : MonoBehaviour
     private (Vector3 pos, Quaternion rot) GetThirdPersonPosRot()
     {
         Quaternion orbitRot = Quaternion.Euler(_pitch, _yaw, 0f);
-        Vector3 desiredPos = thirdPersonPivot.position
-                               + orbitRot * new Vector3(0f, 0f, -orbitDistance);
+        Vector3 desired = thirdPersonPivot.position
+                             + orbitRot * new Vector3(0f, 0f, -orbitDistance);
 
-        if (Physics.Linecast(thirdPersonPivot.position, desiredPos,
+        if (Physics.Linecast(thirdPersonPivot.position, desired,
                              out RaycastHit hit, cameraCollisionMask))
         {
             float safeDist = Mathf.Max(hit.distance - 0.2f, minOrbitDistance);
-            desiredPos = thirdPersonPivot.position
-                        + orbitRot * new Vector3(0f, 0f, -safeDist);
+            desired = thirdPersonPivot.position + orbitRot * new Vector3(0f, 0f, -safeDist);
         }
 
-        // La rotació de 3a persona mira cap al pivot
-        Quaternion thirdRot = Quaternion.LookRotation(
-            thirdPersonPivot.position - desiredPos);
-
-        return (desiredPos, thirdRot);
+        return (desired, Quaternion.LookRotation(thirdPersonPivot.position - desired));
     }
 
     private void UpdateFrontCamera()
     {
-        Vector3 frontPos = transform.position
-                         + transform.forward * 3f
-                         + Vector3.up * 1.5f;
+        Vector3 frontPos = transform.position + transform.forward * 3f + Vector3.up * 1.5f;
         playerCamera.transform.position = frontPos;
         playerCamera.transform.LookAt(transform.position + Vector3.up * 1.5f);
     }
@@ -142,7 +143,6 @@ public class PlayerLookBehaviour : MonoBehaviour
         float maxSpeed = _movement != null ? _movement.MaxSpeed : 8f;
         float targetFov = speed >= maxSpeed - fovBoostThreshold ? fovBoost : fov;
 
-        // El FOV també transiciona suaument
         playerCamera.fieldOfView = Mathf.Lerp(
             playerCamera.fieldOfView, targetFov, 10f * Time.deltaTime);
     }
@@ -151,17 +151,20 @@ public class PlayerLookBehaviour : MonoBehaviour
 
     public bool IsFirstPerson => _isFirstPerson;
 
+    /// <summary>Canvia entre 1a i 3a persona (via OnAimEvent o FirstPersonZone).</summary>
     public void SetFirstPerson(bool fp)
     {
         if (_lockedFirstPerson && !fp) return;
         _isFirstPerson = fp;
     }
 
+    /// <summary>Bloqueja 1a persona (cridat per FirstPersonZone).</summary>
     public void LockFirstPerson(bool locked)
     {
         _lockedFirstPerson = locked;
         if (locked) _isFirstPerson = true;
     }
 
+    /// <summary>Vista frontal fixa per al ball de victòria.</summary>
     public void SetFrontCamera(bool front) => _isFrontCamera = front;
 }

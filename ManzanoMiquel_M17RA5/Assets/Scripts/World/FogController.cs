@@ -1,4 +1,3 @@
-
 // ════════════════════════════════════════════════════════════════════════════
 // FogController
 // Configura la boira lineal de Unity en iniciar l'escena.

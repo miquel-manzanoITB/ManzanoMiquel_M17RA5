@@ -1,11 +1,10 @@
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
 // ════════════════════════════════════════════════════════════════════════════
 // GameManager
 // Singleton persistent (DontDestroyOnLoad).
-// Gestiona: música, col·leccionable, canvi d'escena, guardar/carregar.
+// Gestiona: música (amb control de volum), col·leccionable, escenes i save.
 // ════════════════════════════════════════════════════════════════════════════
 
 public class GameManager : MonoBehaviour
@@ -18,10 +17,11 @@ public class GameManager : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float musicVolume = 1f;
 
-    [Header("Sons d'escena")]
-    [SerializeField] private AudioClip sceneChangeClip;   // So en canviar d'escena
+    [Header("Sons")]
+    [SerializeField] private AudioClip sceneChangeClip;
 
     public bool HasCollectible { get; private set; }
+    public float MusicVolume => musicVolume;
 
     private void Awake()
     {
@@ -38,16 +38,11 @@ public class GameManager : MonoBehaviour
 
     // ── Col·leccionable ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Crida CollectibleBehaviour en recollir l'objecte.
-    /// Actualitza el HUD i afegeix el mesh visual a la mà del personatge.
-    /// </summary>
     public void RegisterCollectible(CollectibleData data, Transform player)
     {
         HasCollectible = true;
         UIManager.Instance?.AddItemToHUD(data.icon);
 
-        // Visual: instancia el prefab de l'arma al hueso de la mà
         if (data.weaponPrefab == null) return;
         Transform hand = player.Find("Armature/Hips/Spine/RightHand");
         if (hand == null) return;
@@ -56,7 +51,7 @@ public class GameManager : MonoBehaviour
         weapon.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
     }
 
-    // ── So ────────────────────────────────────────────────────────────────────
+    // ── Música ────────────────────────────────────────────────────────────────
 
     public void PlayMusic(AudioClip clip)
     {
@@ -66,7 +61,7 @@ public class GameManager : MonoBehaviour
         musicSource.Play();
     }
 
-    /// <summary>Ajusta el volum de la música (0-1). Assignable des de la UI o l'Inspector.</summary>
+    /// <summary>Ajusta el volum de la música (0-1). Assignable des de la UI.</summary>
     public void SetMusicVolume(float volume)
     {
         musicVolume = Mathf.Clamp01(volume);
@@ -74,15 +69,13 @@ public class GameManager : MonoBehaviour
             musicSource.volume = musicVolume;
     }
 
-    public float MusicVolume => musicVolume;
-
     public void PlaySFX(AudioClip clip)
     {
         if (clip == null || musicSource == null) return;
         musicSource.PlayOneShot(clip);
     }
 
-    // ── Canvi d'escena ────────────────────────────────────────────────────────
+    // ── Escenes ───────────────────────────────────────────────────────────────
 
     public void LoadScene(string sceneName)
     {
@@ -93,8 +86,6 @@ public class GameManager : MonoBehaviour
     public void QuitGame() => Application.Quit();
 
     // ── Guardar / Carregar ────────────────────────────────────────────────────
-    // Guarda: posició, rotació i l'estat del col·leccionable de l'escena.
-    // (L'inventari del personatge és opcional; no s'inclou aquí.)
 
     public void SaveGame(Transform player)
     {
@@ -116,36 +107,5 @@ public class GameManager : MonoBehaviour
             PlayerPrefs.GetFloat("pz"));
         player.rotation = Quaternion.Euler(0f, PlayerPrefs.GetFloat("ry"), 0f);
         HasCollectible = PlayerPrefs.GetInt("hasCollectible") == 1;
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SaveTrigger
-// Adjunta-ho a l'element de Shader/Partícules del checkpoint.
-// Quan el jugador el toca guarda posició, rotació i col·leccionable.
-// ════════════════════════════════════════════════════════════════════════════
-
-[RequireComponent(typeof(Collider))]
-public class SaveTrigger : MonoBehaviour
-{
-    [SerializeField] private ParticleSystem saveParticles;
-    [SerializeField] private AudioClip saveClip;
-
-    private void Awake()
-    {
-        GetComponent<Collider>().isTrigger = true;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!other.CompareTag("Player")) return;
-
-        GameManager.Instance?.SaveGame(other.transform);
-        saveParticles?.Play();
-
-        if (saveClip != null)
-            AudioSource.PlayClipAtPoint(saveClip, transform.position);
-
-        UIManager.Instance?.ShowHint("Partida guardada!");
     }
 }
