@@ -30,6 +30,10 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     // ── Global (estàtic per a UIManager) ─────────────────────────────────────
     public static event UnityAction OnPauseGameEvent;
 
+    // ── Guardat ─────────────────────────────────────
+    public static event UnityAction OnSaveGameEvent;
+    public static event UnityAction OnLoadGameEvent;
+
     // ── Estat del salt (llegit per PlayerJumpBehaviour) ───────────────────────
     public bool IsJumpHeld { get; private set; }
 
@@ -111,5 +115,13 @@ public class PlayerInputController : MonoBehaviour, IPlayerActions
     public void OnSkipVideo(InputAction.CallbackContext ctx)
     {
         if (_actionsEnabled && ctx.performed) OnSkipVideoEvent.Invoke();
+    }
+    public void OnSave(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed) OnSaveGameEvent?.Invoke();
+    }
+    public void OnLoad(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed) OnLoadGameEvent?.Invoke();
     }
 }

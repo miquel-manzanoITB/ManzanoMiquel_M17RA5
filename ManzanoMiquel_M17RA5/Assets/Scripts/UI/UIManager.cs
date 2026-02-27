@@ -14,15 +14,15 @@ public class UIManager : MonoBehaviour
     [Header("HUD")]
     [SerializeField] private Transform inventoryContainer;   // Layout horitzontal
     [SerializeField] private Image itemIconPrefab;
-    [SerializeField] private Text hintText;
+    [SerializeField] private Text hintText;                  // ⚠️ Assignar al Inspector
 
     [Header("Minimapa")]
     [SerializeField] private RawImage minimapImage;          // Connecta amb Render Texture
 
     [Header("Panells")]
-    [SerializeField] private GameObject mainMenuPanel;
-    [SerializeField] private GameObject pausePanel;
-    [SerializeField] private GameObject winPanel;            // GameOver (guanyar la partida)
+    [SerializeField] private GameObject mainMenuPanel;       // ⚠️ Assignar al Inspector
+    [SerializeField] private GameObject pausePanel;          // ⚠️ Assignar al Inspector
+    [SerializeField] private GameObject winPanel;            // ⚠️ Assignar al Inspector
 
     private bool _isPaused;
 
@@ -59,6 +59,13 @@ public class UIManager : MonoBehaviour
 
     public void ShowHint(string message)
     {
+        // Si no hi ha hintText assignat, només logem per no petar
+        if (hintText == null)
+        {
+            Debug.LogWarning($"[UIManager] ShowHint: hintText no assignat. Missatge: {message}");
+            return;
+        }
+
         StopAllCoroutines();
         StartCoroutine(HintRoutine(message));
     }
@@ -68,7 +75,10 @@ public class UIManager : MonoBehaviour
         hintText.text = message;
         hintText.gameObject.SetActive(true);
         yield return new WaitForSeconds(3f);
-        hintText.gameObject.SetActive(false);
+
+        // Comprovem que hintText segueix existint (per si es destrueix la escena)
+        if (hintText != null)
+            hintText.gameObject.SetActive(false);
     }
 
     // ── Menú d'inici ──────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 // CollectibleBehaviour
 // Efecte float + rotació per destacar a l'entorn (requerit per l'enunciat).
 // En recollir-lo: adjunta el mesh a la mà, notifica GameManager, dispara event.
+// Al Start comprova si ja va ser recollit en una partida guardada.
 // ════════════════════════════════════════════════════════════════════════════
 
 using UnityEngine;
@@ -32,6 +33,18 @@ public class CollectibleBehaviour : MonoBehaviour
     {
         _startPos = transform.position;
         GetComponent<Collider>().isTrigger = true;
+
+        // Si ja va ser recollit en una partida guardada, restaurar sense FX
+        if (GameManager.Instance != null && data != null &&
+            GameManager.Instance.HasCollectible(data.itemName))
+        {
+            _collected = true;
+            Transform player = GameObject.FindWithTag("Player")?.transform;
+            GameManager.Instance.RegisterCollectibleSilent(data, player);
+            // Disparem l'event perquè les portes o altres elements es restaurin
+            OnCollected.Invoke();
+            gameObject.SetActive(false);
+        }
     }
 
     private void Update()
